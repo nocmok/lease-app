@@ -92,7 +92,6 @@
                 <div class="hint">PDF генерируется в браузере — никакие данные не отправляются на сервер.</div>
             </div>
             <div style="display:flex;gap:8px">
-                <button type="button" id="previewBtn" class="secondary">Предпросмотр шаблона</button>
                 <button type="submit" id="generateBtn">Сформировать PDF</button>
             </div>
         </div>
@@ -175,11 +174,6 @@
           return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[s];
         });
       }
-
-      previewBtn.addEventListener('click', ()=>{
-        const data = getFormData();
-        renderOnScreenPreview(data);
-      });
 
       form.addEventListener('submit', async function(e){
         e.preventDefault();
