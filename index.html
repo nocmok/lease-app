@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Генератор лизингового договора</title>
+    <!-- Libraries: jspdf and html2canvas (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        :root{
+          --bg:#f6f7fb;--card:#ffffff;--accent:#3b82f6;--muted:#6b7280;--radius:12px;
+          --max-width:900px;
+        }
+        *{box-sizing:border-box;font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
+        html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#eef2ff 60%);}
+        .wrap{max-width:var(--max-width);margin:32px auto;padding:28px;background:linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.95));border-radius:16px;box-shadow:0 6px 30px rgba(15,23,42,0.08);}
+        header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+        .logo{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#6ee7b7);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;}
+        h1{font-size:20px;margin:0}
+        p.lead{color:var(--muted);margin:4px 0 14px}
+        form{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+        label{display:block;font-size:13px;color:#111827;margin-bottom:6px}
+        input,textarea,select{width:100%;padding:10px 12px;border:1px solid #e6e8f0;border-radius:10px;font-size:14px}
+        textarea{min-height:90px;resize:vertical}
+        .full{grid-column:1/-1}
+        .actions{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:14px}
+        button{background:var(--accent);color:white;padding:10px 14px;border-radius:10px;border:0;font-weight:600;cursor:pointer}
+        button.secondary{background:transparent;color:var(--accent);border:1px solid rgba(59,130,246,0.15)}
+        .hint{font-size:12px;color:var(--muted)}
+        .preview-holder{margin-top:18px;display:flex;gap:12px;align-items:center}
+        .contract-template{width:100%;background:var(--card);padding:18px;border-radius:10px;border:1px solid #eef2ff}
+
+        /* PDF template styles (hidden from screen but used for PDF rendering) */
+        #pdf-contract{width:794px; /* A4 @ 96dpi approx */
+          background:white;padding:36px;color:#111;font-size:14px;line-height:1.35;border-radius:4px}
+        #pdf-contract h2{font-size:18px;margin:6px 0}
+        #pdf-contract .meta{font-size:12px;color:var(--muted);margin-bottom:12px}
+        .field-val{font-weight:600}
+
+        footer{margin-top:22px;font-size:12px;color:var(--muted);text-align:center}
+
+        @media(max-width:760px){
+          form{grid-template-columns:1fr}
+          .actions{justify-content:stretch;flex-direction:column}
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <div class="logo">LZ</div>
+        <div>
+            <h1>Генератор лизингового договора</h1>
+            <p class="lead">Заполните данные клиента и автомобиля — нажмите «Сформировать PDF» для просмотра и скачивания договора.</p>
+        </div>
+    </header>
+
+    <form id="lease-form">
+        <div>
+            <label for="regNumber">1. Регистрационный номер автомобиля</label>
+            <input id="regNumber" name="regNumber" placeholder="e.g. A123BC02" required />
+        </div>
+
+        <div>
+            <label for="contractNumber">2. Номер лизингового договора</label>
+            <input id="contractNumber" name="contractNumber" placeholder="Например: LZ-2025-001" required />
+        </div>
+
+        <div>
+            <label for="fullName">3. ФИО заемщика</label>
+            <input id="fullName" name="fullName" placeholder="Иванов Иван Иванович" required />
+        </div>
+
+        <div>
+            <label for="passport">4. Паспортные данные заемщика</label>
+            <input id="passport" name="passport" placeholder="Серия Номер, кем и когда выдан" required />
+        </div>
+
+        <div>
+            <label for="phone">5. Номер телефона заемщика</label>
+            <input id="phone" name="phone" placeholder="+7 (701) 123-45-67" required />
+        </div>
+
+        <div>
+            <label for="email">6. Почта заемщика</label>
+            <input id="email" name="email" type="email" placeholder="client@example.com" required />
+        </div>
+
+        <div class="full">
+            <label for="terms">Дополнительные условия (необязательно)</label>
+            <textarea id="terms" name="terms" placeholder="Короткие специальные условия договора..."></textarea>
+        </div>
+
+        <div class="full actions">
+            <div style="flex:1;display:flex;align-items:center;gap:12px">
+                <div class="hint">PDF генерируется в браузере — никакие данные не отправляются на сервер.</div>
+            </div>
+            <div style="display:flex;gap:8px">
+                <button type="button" id="previewBtn" class="secondary">Предпросмотр шаблона</button>
+                <button type="submit" id="generateBtn">Сформировать PDF</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="preview-holder">
+        <div class="contract-template" id="on-screen-template">
+            <strong>Пример договора</strong>
+            <div style="margin-top:10px;font-size:13px;color:var(--muted)">Здесь будет виден бланк договора перед конвертацией в PDF. Используйте кнопку «Предпросмотр шаблона».</div>
+            <div id="previewContent" style="margin-top:12px"></div>
+        </div>
+    </div>
+
+    <footer>Версия: 1.0 — Этот инструмент работает полностью в браузере.</footer>
+</div>
+
+<!-- Hidden contract element used for rendering high-quality PDF -->
+<div id="pdf-contract-wrapper" style="position:fixed;left:-9999px;top:-9999px;pointer-events:none;">
+    <div id="pdf-contract" aria-hidden="true">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+                <h2>Договор лизинга № <span id="pdf-contract-number"></span></h2>
+                <div class="meta">Дата составления: <span id="pdf-date"></span></div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-weight:700;color:#111">Лизинговая компания</div>
+                <div style="font-size:12px;color:var(--muted)">Адрес / реквизиты</div>
+            </div>
+        </div>
+
+        <p style="margin-top:18px">г. <span id="pdf-city">Алматы</span></p>
+
+        <p>Стороны по настоящему договору: лизингодатель — <strong>Лизинговая компания</strong>, и лизингополучатель — <strong><span id="pdf-borrower"></span></strong> (далее — Стороны), удостоверяющий свою личность паспортными данными: <span id="pdf-passport"></span>, телефон: <span id="pdf-phone"></span>, e-mail: <span id="pdf-email"></span>.</p>
+
+        <h3 style="margin-top:12px">1. Предмет договора</h3>
+        <p>1.1. Лизингодатель передает, а Лизингополучатель принимает в лизинг автомобиль с регистрационным номером <span id="pdf-regnum" class="field-val"></span>.</p>
+
+        <h3 style="margin-top:10px">2. Срок и условия</h3>
+        <p>2.1. Срок и финансовые условия оговариваются отдельно. Дополнительные условия: <span id="pdf-terms">—</span></p>
+
+        <div style="margin-top:20px;display:flex;justify-content:space-between">
+            <div>
+                <div style="font-weight:700">Подписи</div>
+                <div style="margin-top:40px">_____________________<br>Лизингодатель</div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-weight:700">Лизингополучатель</div>
+                <div style="margin-top:40px">_____________________<br><span id="pdf-borrower-sign"></span></div>
+            </div>
+        </div>
+
+        <div style="position:absolute;bottom:24px;left:36px;font-size:11px;color:var(--muted)">Сформировано с помощью генератора — не является официальным документом без подписей и печатей.</div>
+    </div>
+</div>
+
+<script>
+    (function(){
+      const { jsPDF } = window.jspdf;
+
+      const form = document.getElementById('lease-form');
+      const previewBtn = document.getElementById('previewBtn');
+      const previewContent = document.getElementById('previewContent');
+
+      function getFormData(){
+        return {
+          regNumber: document.getElementById('regNumber').value.trim(),
+          contractNumber: document.getElementById('contractNumber').value.trim(),
+          fullName: document.getElementById('fullName').value.trim(),
+          passport: document.getElementById('passport').value.trim(),
+          phone: document.getElementById('phone').value.trim(),
+          email: document.getElementById('email').value.trim(),
+          terms: document.getElementById('terms').value.trim(),
+        };
+      }
+
+      function renderOnScreenPreview(data){
+        previewContent.innerHTML = `
+          <div style="font-size:13px"><strong>Договор № ${escapeHtml(data.contractNumber || '—')}</strong></div>
+          <div style="margin-top:8px">Заемщик: <span style="font-weight:700">${escapeHtml(data.fullName || '—')}</span></div>
+          <div>Паспорт: ${escapeHtml(data.passport || '—')}</div>
+          <div>Телефон: ${escapeHtml(data.phone || '—')} • ${escapeHtml(data.email || '—')}</div>
+          <div style="margin-top:8px">Автомобиль: <span style="font-weight:700">${escapeHtml(data.regNumber || '—')}</span></div>
+          <div style="margin-top:8px;color:var(--muted)">${escapeHtml(data.terms || 'Дополнительных условий нет.')}</div>
+        `;
+      }
+
+      function escapeHtml(str){
+        return str.replace(/[&<>"']/g, function(s){
+          return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[s];
+        });
+      }
+
+      previewBtn.addEventListener('click', ()=>{
+        const data = getFormData();
+        renderOnScreenPreview(data);
+      });
+
+      form.addEventListener('submit', async function(e){
+        e.preventDefault();
+        const data = getFormData();
+
+        // Basic validation
+        if(!data.regNumber || !data.contractNumber || !data.fullName || !data.passport || !data.phone || !data.email){
+          alert('Пожалуйста, заполните все обязательные поля.');
+          return;
+        }
+
+        // Fill pdf DOM
+        document.getElementById('pdf-contract-number').textContent = data.contractNumber || '—';
+        document.getElementById('pdf-date').textContent = (new Date()).toLocaleDateString('ru-RU');
+        document.getElementById('pdf-borrower').textContent = data.fullName || '—';
+        document.getElementById('pdf-passport').textContent = data.passport || '—';
+        document.getElementById('pdf-phone').textContent = data.phone || '—';
+        document.getElementById('pdf-email').textContent = data.email || '—';
+        document.getElementById('pdf-regnum').textContent = data.regNumber || '—';
+        document.getElementById('pdf-terms').textContent = data.terms || '—';
+        document.getElementById('pdf-borrower-sign').textContent = data.fullName || '—';
+
+        // Render to canvas with html2canvas
+        const pdfEl = document.getElementById('pdf-contract');
+
+        // Ensure element is visible to renderer (it's off-screen but in DOM) — temporarily scale for high-res
+        const scale = 2; // increase for quality
+        const width = pdfEl.offsetWidth; // 794
+        const height = pdfEl.offsetHeight;
+
+        // Use html2canvas with higher scale for crisp PDF
+        const canvas = await html2canvas(pdfEl, {
+          scale: scale,
+          useCORS: true,
+          allowTaint: true,
+          logging: false
+        });
+
+        // Create PDF with jsPDF — A4 portrait (pt units: 595.28 x 841.89 at 72dpi) but jsPDF uses mm by default; we'll compute in px -> mm conversion
+        const imgData = canvas.toDataURL('image/png');
+
+        // A4 dimensions in px at 96dpi: 794 x 1123 (approx). We'll calculate PDF size in mm.
+        const pdf = new jsPDF({unit:'pt', format:'a4', compress: true});
+
+        // Calculate dimensions
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        // Fit image into page while preserving aspect ratio
+        const imgProps = {width: canvas.width, height: canvas.height};
+        const ratio = Math.min(pageWidth / imgProps.width, pageHeight / imgProps.height);
+        const imgWidth = imgProps.width * ratio;
+        const imgHeight = imgProps.height * ratio;
+        const marginX = (pageWidth - imgWidth) / 2;
+        const marginY = (pageHeight - imgHeight) / 2;
+
+        pdf.addImage(imgData, 'PNG', marginX, marginY, imgWidth, imgHeight);
+
+        // Output PDF to blob and open in new window
+        const pdfBlob = pdf.output('blob');
+        const url = URL.createObjectURL(pdfBlob);
+        window.open(url, '_blank');
+
+        // Also prompt download via save dialog (commented out — leave user to download from preview)
+        // pdf.save(`${data.contractNumber || 'contract'}.pdf`);
+      });
+
+      // Initial preview with sample values
+      const sample = {regNumber:'A123BC02',contractNumber:'LZ-2025-001',fullName:'Иванов Иван Иванович',passport:'01 12 345678, выдан МВД, 01.01.2010',phone:'+7 (701) 123-45-67',email:'ivanov@example.com',terms:'Стандартный набор условий.'};
+      renderOnScreenPreview(sample);
+
+    })();
+</script>
+</body>
+</html>
