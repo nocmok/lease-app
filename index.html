@@ -87,11 +87,6 @@
             <input id="email" name="email" type="email" placeholder="client@example.com" required />
         </div>
 
-        <div class="full">
-            <label for="terms">Дополнительные условия (необязательно)</label>
-            <textarea id="terms" name="terms" placeholder="Короткие специальные условия договора..."></textarea>
-        </div>
-
         <div class="full actions">
             <div style="flex:1;display:flex;align-items:center;gap:12px">
                 <div class="hint">PDF генерируется в браузере — никакие данные не отправляются на сервер.</div>
@@ -102,14 +97,6 @@
             </div>
         </div>
     </form>
-
-    <div class="preview-holder">
-        <div class="contract-template" id="on-screen-template">
-            <strong>Пример договора</strong>
-            <div style="margin-top:10px;font-size:13px;color:var(--muted)">Здесь будет виден бланк договора перед конвертацией в PDF. Используйте кнопку «Предпросмотр шаблона».</div>
-            <div id="previewContent" style="margin-top:12px"></div>
-        </div>
-    </div>
 
     <footer>Версия: 1.0 — Этот инструмент работает полностью в браузере.</footer>
 </div>
@@ -168,8 +155,7 @@
           fullName: document.getElementById('fullName').value.trim(),
           passport: document.getElementById('passport').value.trim(),
           phone: document.getElementById('phone').value.trim(),
-          email: document.getElementById('email').value.trim(),
-          terms: document.getElementById('terms').value.trim(),
+          email: document.getElementById('email').value.trim()
         };
       }
 
@@ -260,10 +246,6 @@
         // Also prompt download via save dialog (commented out — leave user to download from preview)
         // pdf.save(`${data.contractNumber || 'contract'}.pdf`);
       });
-
-      // Initial preview with sample values
-      const sample = {regNumber:'A123BC02',contractNumber:'LZ-2025-001',fullName:'Иванов Иван Иванович',passport:'01 12 345678, выдан МВД, 01.01.2010',phone:'+7 (701) 123-45-67',email:'ivanov@example.com',terms:'Стандартный набор условий.'};
-      renderOnScreenPreview(sample);
 
     })();
 </script>
